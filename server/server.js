@@ -1,3 +1,6 @@
+require('./config/config');
+
+const _ = require('lodash');
 const express = require('express');
 const bodyParser = require('body-parser');
 const {ObjectID} = require('mongodb');
@@ -7,11 +10,9 @@ const {Todo} = require('./models/todo');
 const {User} = require('./models/user');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT;
 
 app.use(bodyParser.json());
-
-
 
 app.post('/todos', (req, res) => {
     console.log(req.body); // the body is stored by body parser
@@ -46,7 +47,7 @@ app.get('/todos/:id', (req, res) => {
     // Validate id using ObjectID.isValid(id)
     if(!ObjectID.isValid(id)){
         // 404 - send back empty send
-        res.status(404).send();
+        return res.status(404).send();
     }
 
     // findById
@@ -57,6 +58,55 @@ app.get('/todos/:id', (req, res) => {
         res.send({todo});
 
     }).catch( e => { res.status(400).send() })
+
+});
+
+app.delete('/todos/:id', (req, res) => {
+    const id = req.params.id;
+
+    // validate the id -> not valid? return 404
+    if(!ObjectID.isValid(id)){
+        return res.status(404).send();
+    }
+
+    Todo.findByIdAndRemove(id).then( todo => {
+        if(!todo){
+            return res.status(404).send()
+        }
+
+        res.send({todo});
+    }).catch(e => { res.status(400).send()});
+
+});
+
+// Update todo items
+app.patch('/todos/:id', (req, res) => {
+    const id = req.params.id;
+    // pick takes an object
+    // Takes an array of properties you want to pull off.
+    const body = _.pick(req.body, ['text', 'completed']);
+
+    if(!ObjectID.isValid(id)) {
+        return res.status(404).send();
+    }
+
+    if(_.isBoolean(body.completed) && body.completed) {
+        body.completedAt = new Date().getTime();
+    } else {
+        body.completed = false;
+        body.completedAt = null;
+    }
+                                            // returns the new, updated object
+                                            // with the option.
+    Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then(todo => {
+        if(!todo){
+            return res.status(404).send();
+        }
+
+        res.send(todo)
+    }).catch(e => {
+        res.status(400).send();
+    });
 
 });
 
