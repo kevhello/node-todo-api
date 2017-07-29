@@ -110,6 +110,27 @@ app.patch('/todos/:id', (req, res) => {
 
 });
 
+app.post('/users', (req, res) => {
+    const body = _.pick(req.body, ['email', 'password']);
+
+    // create new instance of the user model
+    const user = new User(body);
+
+    // save the doc to the database
+    // Set up authentication here
+    user.save()
+        .then( () => {
+            return user.generateAuthToken();
+        })
+        .then((token) => {
+            // Prefixing a header with 'x-' means its a custom header.
+            res.header('x-auth', token).send(user);
+        })
+        .catch(e => {
+            res.status(400).send(e);
+        });
+});
+
 app.listen(port, () => {
     console.log(`Started on port ${port}`);
 });
