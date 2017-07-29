@@ -66,6 +66,32 @@ UserSchema.methods.generateAuthToken = function () {
     });
 };
 
+// Statics is an object contains the methods for the model,
+// instead of the instance.
+UserSchema.statics.findByToken = function(token) {
+    const User = this; // refers to the model
+    let decoded; // will store the decoded jwt values from jwt.verify
+
+    try {
+        // try decoding the token!
+        decoded = jwt.verify(token, 'abc123');
+    } catch (e) {
+        return Promise.reject();
+    }
+
+    // ... the token has successfully been decoded
+
+    // we return the promise to be able to add some chaining in server.js
+    return User.findOne({
+        // quotes are not required here for _id,
+        // but we keep them here for consistency
+        '_id': decoded._id,
+        // to query a nested document, we wrap the key in quotes:
+        // Quotes are required when we have a 'dot' in the key we want to query
+        'tokens.token': token,
+        'tokens.access': 'auth'
+    });
+};
 // Note: we pass the schema we created as the 2nd arg.
 const User = mongoose.model('User', UserSchema);
 
