@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const validator = require('validator');
 const jwt = require('jsonwebtoken');
 const _ = require('lodash');
+const bcrypt = require('bcryptjs');
 
 // Stores the schema for our user
 // We can place custom methods on to Schemas, but not on mongoose.model
@@ -92,6 +93,29 @@ UserSchema.statics.findByToken = function(token) {
         'tokens.access': 'auth'
     });
 };
+
+// The 'pre' lets you run some code before a given event.
+// Here we run code before we save the document to the database.
+// Note: you MUST provide the 'next' argument and you MUST call it
+//       somewhere inside the function.
+UserSchema.pre('save', function (next) {
+    const user = this;
+
+    // To prevent hashing our hashed value!
+    if(user.isModified('password')){
+        // isModified takes an individual property
+        // If modified, returns true, else false.
+        bcrypt.genSalt(10).then(salt => {
+            bcrypt.hash(user.password, salt).then(hash => {
+                user.password = hash; // override plaintext password
+                next(); // Complete the middleware, move on to save the document
+            });
+        });
+    } else {
+        next();
+    }
+});
+
 // Note: we pass the schema we created as the 2nd arg.
 const User = mongoose.model('User', UserSchema);
 
