@@ -16,11 +16,12 @@ const port = process.env.PORT;
 
 app.use(bodyParser.json());
 
-app.post('/todos', (req, res) => {
+app.post('/todos', authenticate, (req, res) => {
     console.log(req.body); // the body is stored by body parser
 
     const todo = new Todo({
-        text: req.body.text
+        text: req.body.text,
+        _creator: req.user._id,
     });
 
     todo.save().then(doc => {
@@ -31,9 +32,11 @@ app.post('/todos', (req, res) => {
 });
 
 // Get all todos!
-app.get('/todos', (req, res) => {
+app.get('/todos', authenticate, (req, res) => {
     // Get everything w/o authentication
-    Todo.find().then((todos) => {
+    Todo.find({
+        _creator: req.user._id,
+    }).then((todos) => {
         // Send back an object in-case we want to send additional properties
         // in the future
         res.send({todos})
@@ -43,7 +46,7 @@ app.get('/todos', (req, res) => {
 });
 
 // GET /todos/1234324
-app.get('/todos/:id', (req, res) => {
+app.get('/todos/:id', authenticate, (req, res) => {
     const id = req.params.id;
 
     // Validate id using ObjectID.isValid(id)
@@ -53,7 +56,10 @@ app.get('/todos/:id', (req, res) => {
     }
 
     // findById
-    Todo.findById(id).then( todo => {
+    Todo.findOne({
+        _id: id,
+        _creator: req.user._id,
+    }).then( todo => {
         if(!todo){
             res.status(404).send()
         }
@@ -63,7 +69,7 @@ app.get('/todos/:id', (req, res) => {
 
 });
 
-app.delete('/todos/:id', (req, res) => {
+app.delete('/todos/:id', authenticate, (req, res) => {
     const id = req.params.id;
 
     // validate the id -> not valid? return 404
@@ -71,7 +77,10 @@ app.delete('/todos/:id', (req, res) => {
         return res.status(404).send();
     }
 
-    Todo.findByIdAndRemove(id).then( todo => {
+    Todo.findOneAndRemove({
+        _id: id,
+        _creator: req.user._id
+    }).then( todo => {
         if(!todo){
             return res.status(404).send()
         }
@@ -82,7 +91,7 @@ app.delete('/todos/:id', (req, res) => {
 });
 
 // Update todo items
-app.patch('/todos/:id', (req, res) => {
+app.patch('/todos/:id', authenticate, (req, res) => {
     const id = req.params.id;
     // pick takes an object
     // Takes an array of properties you want to pull off.
@@ -100,7 +109,7 @@ app.patch('/todos/:id', (req, res) => {
     }
                                             // returns the new, updated object
                                             // with the option.
-    Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then(todo => {
+    Todo.findOneAndUpdate({_id: id, _creator: req.user.id}, {$set: body}, {new: true}).then(todo => {
         if(!todo){
             return res.status(404).send();
         }
