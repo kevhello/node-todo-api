@@ -115,6 +115,20 @@ UserSchema.statics.findByCredentials = function (email, password) {
     });
 };
 
+UserSchema.methods.removeToken = function (token){
+    // $pull lets you remove items from an array that match certain criteria
+    const user = this;
+
+    return user.update({
+        $pull: {
+            tokens: {
+                // Will remove the entire object in the array.
+                // The array will have one less item in it.
+                token: token
+            }
+        }
+    })
+};
 // The 'pre' lets you run some code before a given event.
 // Here we run code before we save the document to the database.
 // Note: you MUST provide the 'next' argument and you MUST call it
