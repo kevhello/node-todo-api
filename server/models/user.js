@@ -94,6 +94,27 @@ UserSchema.statics.findByToken = function(token) {
     });
 };
 
+UserSchema.statics.findByCredentials = function (email, password) {
+    const User = this;
+
+    return User.findOne({email}).then(user => {
+        if(!user){
+            return Promise.reject();
+        }
+
+        return new Promise((resolve, reject) => {
+            bcrypt.compare(password, user.password, (err, res) => {
+                // bcrypt.compare: the res is true if the compare is true
+                if(res){
+                    resolve(user);
+                } else {
+                    reject();
+                }
+            });
+        });
+    });
+};
+
 // The 'pre' lets you run some code before a given event.
 // Here we run code before we save the document to the database.
 // Note: you MUST provide the 'next' argument and you MUST call it
@@ -105,10 +126,10 @@ UserSchema.pre('save', function (next) {
     if(user.isModified('password')){
         // isModified takes an individual property
         // If modified, returns true, else false.
-        bcrypt.genSalt(10).then(salt => {
-            bcrypt.hash(user.password, salt).then(hash => {
+        bcrypt.genSalt(10,(err, salt) => {
+            bcrypt.hash(user.password, salt, (err, hash) => {
                 user.password = hash; // override plaintext password
-                next(); // Complete the middleware, move on to save the document
+                next(); // Complete the middleware, move on to save the doc
             });
         });
     } else {

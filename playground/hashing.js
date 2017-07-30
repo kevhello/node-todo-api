@@ -6,7 +6,7 @@ const password = '123abc!';
 
 // 1st arg: the # of rounds you want to use to generate the salt. (bigger is slower, but more secure)
 // 2nd arg: the callback function.
-bcrypt.genSalt(10).then(salt => {
+bcrypt.genSalt(10, (err, salt) => {
     // 1st arg: the thing to hash
     // 2nd arg: the salt to use
     // 3rd arg: the callback function
